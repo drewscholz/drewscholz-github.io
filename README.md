@@ -1,13 +1,13 @@
 # FoundationDB Lambda Client
-
-## There are two main steps...
-
+---
+*Python container lambda running FoundationDB client to set and get data from FoundationDB servers*
 ## 1. Dockerfile for Lambda Container
 ### Notes:
 
 * Copies fdb.cluster file into the image
 * Installs foundationdb and gevent
-* gevent is used to workaround lambda parallel processing constraint
+* gevent is used to workaround the python lambda parallel processing constraint
+### Dockerfile:
 ```
 # https://docs.aws.amazon.com/lambda/latest/dg/images-create.html#images-create-from-base
 FROM ubuntu:20.04
@@ -48,16 +48,25 @@ CMD [ "handler.lambda_handler" ]
 
 ## 2. Lambda Handler
 ### Notes:
-* Assumes value is a string
-* the default event_mode for fdb.open() does not work in AWS Lambda, see section below
+* the default event_mode for fdb.open() does not work in AWS Lambda, see **Lambda Contraints with Parallel Processing** below
+
+### Python example:
 ```
 import fdb
 
 fdb.api_version(720)
 db = fdb.open(event_model="gevent")
 
-datapoints_dir = fdb.directory.open(db, ('my_dir', 'my_sub_dir'))
-subspace_data = datapoints_dir['my_subspace']
+foobar_dir = fdb.directory.open(db, ('foo', 'bar'))
+subspace_data = foobar_dir['data']
+
+
+def lambda_handler(event, context):
+    print("setting value")
+    my_key = ('asdf', '1234')
+    set_value(db, my_key, 'my_value')
+    print("set value, getting value")
+    print('value: ', get_value(db, my_key))
 
 
 @fdb.transactional
@@ -71,21 +80,16 @@ def get_value(tr, key):
     return value.decode('utf-8')
 
 
-def lambda_handler(event, context):
-    print("setting value")
-    my_key = ('asdf', '1234')
-    set_value(db, my_key, 'my_value')
-    print("set value, getting value")
-    print('value: ', get_value(db, my_key))
-
 ```
 
-## Lambda Contraints with Parallel Processing
-### Related docs:
+---
+
+## **Lambda Contraints with Parallel Processing**
+### Related documentation:
 * https://aws.amazon.com/blogs/compute/parallel-processing-in-python-with-aws-lambda/
 * https://stackoverflow.com/questions/34005930/multiprocessing-semlock-is-not-implemented-when-running-on-aws-lambda
 
-### Python Runtime Error:
+### Python AWS Lambda Runtime Error:
 ```
 [ERROR] OSError: [Errno 38] Function not implemented
 Traceback (most recent call last):
@@ -114,5 +118,9 @@ Traceback (most recent call last):
   File "/usr/lib/python3.9/multiprocessing/synchronize.py", line 57, in __init__
     sl = self._semlock = _multiprocessing.SemLock(
 ```
-
+---
+## **Additional Notes**
+* Configure lambda in the same VPC as the FoundationDB EC2 servers: https://docs.aws.amazon.com/lambda/latest/dg/configuration-vpc.html
+* Configure EC2 servers security group inbound rules to allow from VPC
+---
 Thanks to https://dillinger.io/ for the styled html export
