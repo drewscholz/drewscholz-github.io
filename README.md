@@ -114,3 +114,5 @@ Traceback (most recent call last):
   File "/usr/lib/python3.9/multiprocessing/synchronize.py", line 57, in __init__
     sl = self._semlock = _multiprocessing.SemLock(
 ```
+
+Thanks to https://dillinger.io/ for the styled html export
