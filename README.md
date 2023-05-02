@@ -10,12 +10,7 @@
 ### Dockerfile:
 ```
 # https://docs.aws.amazon.com/lambda/latest/dg/images-create.html#images-create-from-base
-FROM ubuntu:20.04
-
-# Install dependencies for Lambda and python3.9
-RUN apt-get update && apt-get install -y wget g++ make cmake unzip libcurl4-openssl-dev
-RUN apt-get install -y software-properties-common gcc && add-apt-repository -y ppa:deadsnakes/ppa
-RUN apt-get update && apt-get install -y python3.9 python3-distutils python3-pip python3-apt
+FROM python:3.10
 
 # Install FoundationDB Client
 RUN wget -c https://github.com/apple/foundationdb/releases/download/7.2.5/foundationdb-clients_7.2.5-1_amd64.deb
@@ -25,13 +20,14 @@ RUN dpkg -i foundationdb-clients_7.2.5-1_amd64.deb
 ARG FUNCTION_DIR="/function"
 RUN mkdir -p ${FUNCTION_DIR}
 
-# Install python packages
-RUN python3.9 -m pip install --target ${FUNCTION_DIR} awslambdaric
-RUN python3.9 -m pip install foundationdb==7.2.5
-RUN python3.9 -m pip install gevent==22.10.2
-
 # Set working directory to function root directory
 WORKDIR ${FUNCTION_DIR}
+
+# Install python packages
+RUN python -m pip install --target ${FUNCTION_DIR} awslambdaric
+RUN python -m pip install foundationdb==7.2.5
+RUN python -m pip install gevent==22.10.2
+
 
 ENV FDB_CLUSTER_FILE=/var/fdb/fdb.cluster
 ENV FDB_NETWORKING_MODE=container
@@ -41,7 +37,7 @@ COPY /path/to/fdb.cluster /var/fdb/fdb.cluster
 
 COPY app/* ${FUNCTION_DIR}
 
-ENTRYPOINT [ "python3.9", "-m", "awslambdaric" ]
+ENTRYPOINT [ "python", "-m", "awslambdaric" ]
 
 CMD [ "handler.lambda_handler" ]
 ```
